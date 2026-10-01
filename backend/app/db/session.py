@@ -1,11 +1,22 @@
+import os
 from pathlib import Path
 
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
+DATABASE_PATH = Path(
+    os.getenv("DATABASE_PATH", "/data/storymap.db")
+)
+
+DATABASE_PATH.parent.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 
 # sqlite database file inside backend folder
-DATABASE_URL = f"sqlite:///{Path(__file__).resolve().parents[2] / 'storymap.db'}"
+#DATABASE_URL = f"sqlite:///{Path(__file__).resolve().parents[2] / 'storymap.db'}"
 
 # creates sqlalchemy engine for sqlite database
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})

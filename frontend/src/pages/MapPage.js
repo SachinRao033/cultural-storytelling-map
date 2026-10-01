@@ -3,10 +3,9 @@ import { ZoomControl } from "react-leaflet";
 import { Link } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
-import API from "../services/Api";
+import API, { mediaUrl } from "../services/Api";
 import Navbar from "../components/Navbar";
 import L from "leaflet";
-
 
 // renders the full map page with navbar and approved story markers
 export default function MapPage() {
@@ -106,7 +105,7 @@ const getMarkerIcon = (category) => {
                                     {/* uses a temporary image until story media is available */}
                                     {story.image_url && (
                                         <img
-                                            src={`http://127.0.0.1:8000/${story.image_url}`}
+					    src={mediaUrl(story.image_url)}
                                             alt={story.title}
                                         />
                                     )}
@@ -114,7 +113,7 @@ const getMarkerIcon = (category) => {
                                     {story.audio_url && (
                                         <audio controls style={{ width: "100%", marginTop: "8px" }}>
                                             <source
-                                                src={`http://127.0.0.1:8000/${story.audio_url}`}
+                                                src={mediaUrl(story.audio_url)}
                                                 type="audio/mpeg"
                                             />
                                             Your browser does not support audio.

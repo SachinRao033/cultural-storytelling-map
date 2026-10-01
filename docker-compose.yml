@@ -1,0 +1,49 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: cultural-backend
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      DATABASE_PATH: /data/storymap.db
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - cultural_database:/data
+      - cultural_uploads:/app/uploads
+
+    restart: unless-stopped
+
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+      args:
+        REACT_APP_API_URL: http://${EC2_IP}:8000
+
+    container_name: cultural-frontend
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      - backend
+
+    restart: unless-stopped
+
+
+volumes:
+
+  cultural_database:
+
+  cultural_uploads:
