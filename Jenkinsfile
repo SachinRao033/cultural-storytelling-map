@@ -3,7 +3,7 @@ pipeline {
     agent any
 
     environment {
-        PROJECT_DIR = "/home/ubuntu/cultural-storytelling-map"
+        PROJECT_DIR = "${WORKSPACE}"
         EC2_IP = "3.111.78.229"
     }
 
@@ -15,21 +15,20 @@ pipeline {
             }
         }
 
-        stage('Copy Project') {
+        stage('Verify Project') {
             steps {
                 sh '''
                     echo "======================================"
-                    echo "Jenkins Workspace: ${WORKSPACE}"
-                    echo "Deployment Directory: ${PROJECT_DIR}"
+                    echo "Checking project structure"
                     echo "======================================"
 
-                    sudo mkdir -p "${PROJECT_DIR}"
+                    test -f backend/requirements.txt
+                    test -f backend/Dockerfile
+                    test -f frontend/package.json
+                    test -f frontend/Dockerfile
+                    test -f docker-compose.yml
 
-                    sudo cp -r "WORKSPACE/.""{PROJECT_DIR}/"
-
-                    sudo chown -R jenkins:jenkins "${PROJECT_DIR}"
-
-                    echo "Project copied successfully"
+                    echo "Project structure OK"
                 '''
             }
         }
@@ -37,7 +36,9 @@ pipeline {
         stage('Create Backend Environment') {
             steps {
                 sh '''
-                    cd "${PROJECT_DIR}"
+                    echo "======================================"
+                    echo "Creating backend environment"
+                    echo "======================================"
 
                     cat > backend/.env <<EOF
 GEMINI_API_KEY=
@@ -52,14 +53,16 @@ EOF
             }
         }
 
-        stage('Stop Old Containers') {
+        stage('Stop Existing Containers') {
             steps {
                 sh '''
-                    cd "${PROJECT_DIR}"
-
-                    echo "Stopping old containers..."
+                    echo "======================================"
+                    echo "Stopping existing containers"
+                    echo "======================================"
 
                     docker compose down || true
+
+                    echo "Existing containers stopped"
                 '''
             }
         }
@@ -67,77 +70,78 @@ EOF
         stage('Build Docker Images') {
             steps {
                 sh '''
-                    cd "${PROJECT_DIR}"
+                    echo "======================================"
+                    echo "Building Docker images"
+                    echo "======================================"
 
-                    echo "Building Docker images..."
+                    export EC2_PUBLIC_IP="${EC2_IP}"
 
-                    export EC2_IP="${EC2_IP}"
+                    docker compose build --no-cache
 
-                    docker compose build
+                    echo "Docker images built successfully"
                 '''
             }
         }
 
-        stage('Deploy Containers') {
+        stage('Start Application') {
             steps {
                 sh '''
-                    cd "${PROJECT_DIR}"
+                    echo "======================================"
+                    echo "Starting application"
+                    echo "======================================"
 
-                    echo "Starting application..."
-
-                    export EC2_IP="${EC2_IP}"
+                    export EC2_PUBLIC_IP="${EC2_IP}"
 
                     docker compose up -d
+
+                    echo "Application containers started"
                 '''
             }
         }
 
-        stage('Verify Deployment') {
+        stage('Wait for Application') {
             steps {
                 sh '''
-                    cd "${PROJECT_DIR}"
+                    echo "Waiting for application to start..."
 
-                    echo "Waiting for services..."
                     sleep 15
 
-                    echo "======================================"
-                    echo "Docker Compose Status"
-                    echo "======================================"
+                    echo "Checking containers..."
 
                     docker compose ps
+                '''
+            }
+        }
 
+        stage('Health Check') {
+            steps {
+                sh '''
                     echo "======================================"
-                    echo "Running Containers"
-                    echo "======================================"
-
-                    docker ps
-
-                    echo "======================================"
-                    echo "Backend Health Check"
+                    echo "Running health checks"
                     echo "======================================"
 
-                    curl -f http://localhost:8000
+                    echo "Checking backend..."
+
+                    curl -f http://localhost:8000/
 
                     echo ""
                     echo "Backend is healthy"
 
-                    echo "======================================"
-                    echo "Frontend Health Check"
-                    echo "======================================"
+                    echo "Checking frontend..."
 
-                    curl -f http://localhost:3000
+                    curl -f http://localhost:3000/
 
                     echo ""
                     echo "Frontend is healthy"
 
-                    echo "======================================"
-                    echo "Database Check"
-                    echo "======================================"
+                    echo "Checking database..."
 
                     docker exec cultural-backend ls -lh /data
 
+                    echo "Database volume is available"
+
                     echo "======================================"
-                    echo "Application deployed successfully!"
+                    echo "APPLICATION IS HEALTHY"
                     echo "======================================"
                 '''
             }
@@ -147,19 +151,40 @@ EOF
     post {
 
         success {
-            echo "SUCCESS: Cultural Storytelling Map deployed successfully!"
+            echo "======================================"
+            echo "CULTURAL STORYTELLING DEPLOYMENT SUCCESSFUL"
+            echo "======================================"
+
             echo "Frontend: http://${EC2_IP}:3000"
-            echo "Backend: http://${EC2_IP}:8000"
+            echo "Backend:  http://${EC2_IP}:8000"
+            echo "Swagger:  http://${EC2_IP}:8000/docs"
+
+            echo "======================================"
         }
 
         failure {
-            echo "FAILED: Deployment failed. Check Jenkins console output."
+            echo "======================================"
+            echo "DEPLOYMENT FAILED"
+            echo "======================================"
+
+            echo "Check the Jenkins Console Output for the error."
+
+            echo "======================================"
         }
 
         always {
             sh '''
-                sudo chown -R jenkins:jenkins "${PROJECT_DIR}" || true
-                docker image prune -f || true
+                echo "======================================"
+                echo "FINAL CONTAINER STATUS"
+                echo "======================================"
+
+                docker ps
+
+                echo "======================================"
+                echo "DOCKER COMPOSE STATUS"
+                echo "======================================"
+
+                docker compose ps || true
             '''
         }
     }
