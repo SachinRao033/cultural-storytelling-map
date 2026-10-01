@@ -4,7 +4,7 @@ pipeline {
 
     environment {
         PROJECT_DIR = "${WORKSPACE}"
-        EC2_IP = "3.111.78.229"
+        EC2_IP = "18.60.218.138"
     }
 
     stages {
@@ -44,7 +44,7 @@ pipeline {
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-flash-lite-latest
 NARRIFY_AUTO_APPROVE=true
-JWT_SECRET_KEY=45ae66b9610c1299d62b759ed06d8e6fd8d0dc3b3f632cf3dae0235d4ed7b857
+JWT_SECRET_KEY=821d32455e6be31fff9c5f6dd98f994c595c94f3e0bec3e679d1c3d78d4aa273
 FRONTEND_URL=http://${EC2_IP}:3000
 EOF
 
